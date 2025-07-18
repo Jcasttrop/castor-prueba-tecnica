@@ -13,13 +13,15 @@ export default async function Home() {
     redirect("/");
   }
 
-  console.log(user)
-
   return (
-    <>
-      <h1>Hello {user ? (user as any).id : "Guest"}</h1>
-
-      {user ? <LogoutButton /> : <LoginButton />}
-    </>
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 to-blue-100">
+      <div className="bg-white rounded-xl shadow-lg p-8 w-full max-w-md flex flex-col items-center gap-6">
+        <div className="w-full text-center">
+          <h1 className="text-2xl font-bold mb-2">Welcome to Castor</h1>
+          <p className="text-gray-500 mb-6">Sign in to access your dashboard</p>
+        </div>
+        <LoginButton />
+      </div>
+    </div>
   );
 }
