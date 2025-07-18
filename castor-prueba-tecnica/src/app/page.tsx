@@ -9,6 +9,11 @@ export default function Home() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
+  const [aiPrompt, setAiPrompt] = useState("");
+  const [aiResponse, setAiResponse] = useState("");
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiError, setAiError] = useState("");
+
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -26,6 +31,30 @@ export default function Home() {
       setError("Failed to fetch results");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleAIPrompt = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setAiLoading(true);
+    setAiError("");
+    setAiResponse("");
+    try {
+      const res = await fetch("/api/spotify/recommend", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ prompt: aiPrompt }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setAiResponse(data.text);
+      } else {
+        setAiError(data.error || "Unknown error");
+      }
+    } catch (err) {
+      setAiError("Failed to fetch AI response");
+    } finally {
+      setAiLoading(false);
     }
   };
 
@@ -77,6 +106,33 @@ export default function Home() {
             </li>
           ))}
         </ul>
+        {/* AI Prompt Section */}
+        <section className="mt-10">
+          <h2 className="text-xl font-bold mb-2">Ask AI (OpenAI GPT-4 Turbo)</h2>
+          <form onSubmit={handleAIPrompt} className="flex gap-2 mb-4">
+            <input
+              type="text"
+              className="flex-1 border rounded px-3 py-2"
+              placeholder="Ask anything..."
+              value={aiPrompt}
+              onChange={e => setAiPrompt(e.target.value)}
+              required
+            />
+            <button
+              type="submit"
+              className="bg-primary text-primary-foreground px-4 py-2 rounded disabled:opacity-50"
+              disabled={aiLoading}
+            >
+              {aiLoading ? "Generating..." : "Ask"}
+            </button>
+          </form>
+          {aiError && <div className="text-red-600 mb-2">{aiError}</div>}
+          {aiResponse && (
+            <div className="bg-gray-100 p-4 rounded shadow whitespace-pre-line">
+              {aiResponse}
+            </div>
+          )}
+        </section>
       </main>
     </>
   );
