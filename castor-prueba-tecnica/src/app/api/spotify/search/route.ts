@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { prisma } from '@/lib/prisma';
+import { supabaseServerClient } from '@/utils/supabase/server';
 
 const SPOTIFY_CLIENT_ID = process.env.NEXT_PUBLIC_SPOTIFY_CLIENTID;
 const SPOTIFY_CLIENT_SECRET = process.env.NEXT_PUBLIC_SPOTIFY_CLIENT_SECRET;
@@ -26,15 +28,28 @@ async function getSpotifyAccessToken() {
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const query = searchParams.get('q');
+  // Extract type if provided, default to 'track'
+  const type = searchParams.get('type') || 'track';
 
   if (!query) {
     return NextResponse.json({ error: 'Missing search query' }, { status: 400 });
   }
 
+  // Get authenticated user
+  let userId = null;
+  try {
+    const supabase = await supabaseServerClient();
+    const { data } = await supabase.auth.getUser();
+    userId = data?.user?.id || null;
+  } catch (e) {
+    // If user not authenticated, skip saving search
+    userId = null;
+  }
+
   try {
     const accessToken = await getSpotifyAccessToken();
     const searchRes = await fetch(
-      `https://api.spotify.com/v1/search?q=${encodeURIComponent(query)}&type=track&limit=10`,
+      `https://api.spotify.com/v1/search?q=${encodeURIComponent(query)}&type=${type}&limit=10`,
       {
         headers: {
           Authorization: `Bearer ${accessToken}`,
@@ -57,6 +72,22 @@ export async function GET(req: NextRequest) {
       previewUrl: track.preview_url,
       externalUrl: track.external_urls.spotify,
     }));
+
+    // Save search to database if user is authenticated
+    if (userId) {
+      try {
+        await prisma.searchHistory.create({
+          data: {
+            userId,
+            query,
+            type,
+          },
+        });
+      } catch (dbError) {
+        // Log but do not block response
+        console.error('Error saving search history:', dbError);
+      }
+    }
 
     return NextResponse.json({ tracks });
   } catch (error: any) {

@@ -1,7 +1,52 @@
 "use client"
 
 import Navbar from "@/components/ui/Navbar";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+
+function UserSearchHistory() {
+  const [history, setHistory] = useState<{ query: string; type?: string; createdAt: string }[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    async function fetchHistory() {
+      setLoading(true);
+      setError("");
+      try {
+        const res = await fetch("/api/spotify/user-stats");
+        const data = await res.json();
+        if (res.ok) {
+          setHistory(data.history || []);
+        } else {
+          setError(data.error || "Failed to fetch search history");
+        }
+      } catch (err) {
+        setError("Failed to fetch search history");
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchHistory();
+  }, []);
+
+  if (loading) return <div className="mb-4">Loading search history...</div>;
+  if (error) return <div className="text-red-600 mb-4">{error}</div>;
+  if (!history.length) return <div className="mb-4 text-gray-500">No recent searches.</div>;
+  return (
+    <div className="mb-6">
+      <h2 className="text-lg font-semibold mb-2">Your Recent Searches</h2>
+      <ul className="divide-y divide-gray-200">
+        {history.map((item, idx) => (
+          <li key={idx} className="py-2 flex justify-between items-center">
+            <span className="font-mono text-sm">{item.query}</span>
+            <span className="text-xs text-gray-500">{item.type || 'track'}</span>
+            <span className="text-xs text-gray-400">{new Date(item.createdAt).toLocaleString()}</span>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
 
 export default function Home() {
   const [query, setQuery] = useState("");
@@ -13,6 +58,8 @@ export default function Home() {
   const [aiResponse, setAiResponse] = useState("");
   const [aiLoading, setAiLoading] = useState(false);
   const [aiError, setAiError] = useState("");
+  // New state for AI recommended tracks
+  const [aiTracks, setAiTracks] = useState([]);
 
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -39,6 +86,7 @@ export default function Home() {
     setAiLoading(true);
     setAiError("");
     setAiResponse("");
+    setAiTracks([]); // Clear previous recommendations
     try {
       const res = await fetch("/api/spotify/recommend", {
         method: "POST",
@@ -47,12 +95,16 @@ export default function Home() {
       });
       const data = await res.json();
       if (res.ok) {
-        setAiResponse(data.text);
+        if (data.tracks) {
+          setAiTracks(data.tracks);
+        } else if (data.text) {
+          setAiResponse(data.text);
+        }
       } else {
         setAiError(data.error || "Unknown error");
       }
     } catch (err) {
-      setAiError("Failed to fetch AI response");
+      setAiError("Failed to fetch AI recommendations");
     } finally {
       setAiLoading(false);
     }
@@ -80,6 +132,7 @@ export default function Home() {
             {loading ? "Searching..." : "Search"}
           </button>
         </form>
+        <UserSearchHistory />
         {error && <div className="text-red-600 mb-4">{error}</div>}
         <ul className="space-y-4">
           {results.map((track: any) => (
@@ -127,7 +180,39 @@ export default function Home() {
             </button>
           </form>
           {aiError && <div className="text-red-600 mb-2">{aiError}</div>}
-          {aiResponse && (
+          {/* AI Recommendations Section */}
+          {aiTracks.length > 0 && (
+            <div className="mt-4">
+              <h3 className="text-lg font-semibold mb-2">AI Song Recommendations</h3>
+              <ul className="space-y-4">
+                {aiTracks.map((track: any) => (
+                  <li key={track.id} className="flex items-center gap-4 border-b pb-4">
+                    {track.albumArt && (
+                      <img src={track.albumArt} alt={track.album} className="w-16 h-16 rounded shadow" />
+                    )}
+                    <div className="flex-1">
+                      <div className="font-semibold">{track.name}</div>
+                      <div className="text-sm text-muted-foreground">{track.artists}</div>
+                      <div className="text-xs text-muted-foreground">{track.album}</div>
+                      {track.previewUrl && (
+                        <audio controls src={track.previewUrl} className="mt-1" />
+                      )}
+                    </div>
+                    <a
+                      href={track.externalUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-blue-600 underline text-sm"
+                    >
+                      Open in Spotify
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+          {/* Fallback for plain text AI response (shouldn't happen with new backend, but kept for safety) */}
+          {aiResponse && !aiTracks.length && (
             <div className="bg-gray-100 p-4 rounded shadow whitespace-pre-line">
               {aiResponse}
             </div>

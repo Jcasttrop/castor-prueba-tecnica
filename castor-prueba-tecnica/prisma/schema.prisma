@@ -6,10 +6,24 @@
 
 generator client {
   provider = "prisma-client-js"
-  output   = "../src/generated/prisma"
 }
 
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
+}
+
+model Recommendation {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+  intent    String
+  songs     Json     // Array of song objects (id, name, artists, etc.)
+}
+
+model SearchHistory {
+  id        String   @id @default(uuid())
+  userId    String   // Supabase user ID
+  query     String
+  type      String?
+  createdAt DateTime @default(now())
 }
