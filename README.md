@@ -3,6 +3,8 @@
 <img width="1889" height="1038" alt="image" src="https://github.com/user-attachments/assets/64ee2770-0b5f-4baa-b4fd-9e0a7f95ef9e" />
 
 
+Video explicativo: https://www.youtube.com/watch?v=KsKrMhY6-Js
+
 Una aplicación moderna de descubrimiento de música que combina búsqueda tradicional con recomendaciones de IA, integrada con Spotify API.
 
 
