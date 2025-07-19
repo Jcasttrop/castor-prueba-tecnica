@@ -1,54 +1,16 @@
 "use client"
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Heart, ChevronDown, X, ExternalLink, Music } from 'lucide-react';
-import FavoriteButton from './FavoriteButton';
-
-interface FavoriteSong {
-  id: string;
-  spotifyId: string;
-  name: string;
-  artists: string;
-  album: string;
-  albumArt?: string;
-  previewUrl?: string;
-  externalUrl: string;
-  createdAt: string;
-}
+import { useFavorites } from '@/context/FavoritesContext';
 
 export default function FavoritesDropdown() {
-  const [favorites, setFavorites] = useState<FavoriteSong[]>([]);
+  const { favorites, removeFavorite, loading } = useFavorites();
   const [isOpen, setIsOpen] = useState(false);
-  const [loading, setLoading] = useState(false);
-
-  const fetchFavorites = async () => {
-    setLoading(true);
-    try {
-      const response = await fetch('/api/favorites');
-      if (response.ok) {
-        const data = await response.json();
-        setFavorites(data.favorites || []);
-      }
-    } catch (error) {
-      console.error('Error fetching favorites:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchFavorites();
-  }, []);
 
   const handleRemoveFavorite = async (favoriteId: string) => {
     try {
-      const response = await fetch(`/api/favorites/${favoriteId}`, {
-        method: 'DELETE',
-      });
-      
-      if (response.ok) {
-        setFavorites(prev => prev.filter(fav => fav.id !== favoriteId));
-      }
+      await removeFavorite(favoriteId);
     } catch (error) {
       console.error('Error removing favorite:', error);
     }

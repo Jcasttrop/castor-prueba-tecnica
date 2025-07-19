@@ -37,7 +37,7 @@ export async function POST(req: Request) {
     // 1. Use OpenAI to generate a Spotify search query
     const aiPrompt = `Given the following user intent, generate a concise Spotify search query that would return relevant songs. Only output the query.\nIntent: ${prompt}`;
     const { text: searchQuery } = await generateText({
-      model: openai('gpt-4o-mini', { apiKey: process.env.OPENAI_API_KEY }),
+      model: openai('gpt-3.5-turbo'),
       prompt: aiPrompt,
     });
 

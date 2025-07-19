@@ -5,6 +5,8 @@ import FavoriteButton from "@/components/FavoriteButton";
 import SpotifyLikeButton from "@/components/SpotifyLikeButton";
 import React, { useState, useEffect } from "react";
 import { Search, Sparkles, Clock, Music, Play, ExternalLink } from 'lucide-react';
+import { useSearch } from "@/hooks/useSearch";
+import { useAIRecommendations } from "@/hooks/useAIRecommendations";
 
 function UserSearchHistory() {
   const [history, setHistory] = useState<{ query: string; type?: string; createdAt: string }[]>([]);
@@ -111,63 +113,20 @@ function UserSearchHistory() {
 
 export default function Home() {
   const [query, setQuery] = useState("");
-  const [results, setResults] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
-
   const [aiPrompt, setAiPrompt] = useState("");
-  const [aiResponse, setAiResponse] = useState("");
-  const [aiLoading, setAiLoading] = useState(false);
-  const [aiError, setAiError] = useState("");
-  const [aiTracks, setAiTracks] = useState([]);
+  
+  // Use custom hooks for state management
+  const { results, loading, error, searchSongs } = useSearch();
+  const { tracks: aiTracks, response: aiResponse, loading: aiLoading, error: aiError, getRecommendations } = useAIRecommendations();
 
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
-    setError("");
-    setResults([]);
-    try {
-      const res = await fetch(`/api/spotify/search?q=${encodeURIComponent(query)}`);
-      const data = await res.json();
-      if (res.ok) {
-        setResults(data.tracks);
-      } else {
-        setError(data.error || "Unknown error");
-      }
-    } catch (err) {
-      setError("Failed to fetch results");
-    } finally {
-      setLoading(false);
-    }
+    await searchSongs(query);
   };
 
   const handleAIPrompt = async (e: React.FormEvent) => {
     e.preventDefault();
-    setAiLoading(true);
-    setAiError("");
-    setAiResponse("");
-    setAiTracks([]);
-    try {
-      const res = await fetch("/api/spotify/recommend", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ prompt: aiPrompt }),
-      });
-      const data = await res.json();
-      if (res.ok) {
-        if (data.tracks) {
-          setAiTracks(data.tracks);
-        } else if (data.text) {
-          setAiResponse(data.text);
-        }
-      } else {
-        setAiError(data.error || "Unknown error");
-      }
-    } catch (err) {
-      setAiError("Failed to fetch AI recommendations");
-    } finally {
-      setAiLoading(false);
-    }
+    await getRecommendations(aiPrompt);
   };
 
   const renderTrackList = (tracks: any[], title: string, icon: React.ReactNode) => (

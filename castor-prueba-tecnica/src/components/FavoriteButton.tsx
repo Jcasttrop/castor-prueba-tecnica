@@ -1,7 +1,8 @@
 "use client"
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Heart } from 'lucide-react';
+import { useFavorites } from '@/context/FavoritesContext';
 
 interface FavoriteButtonProps {
   track: {
@@ -13,14 +14,15 @@ interface FavoriteButtonProps {
     previewUrl?: string;
     externalUrl: string;
   };
-  isFavorite?: boolean;
   onToggle?: (isFavorite: boolean) => void;
 }
 
-export default function FavoriteButton({ track, isFavorite: initialIsFavorite = false, onToggle }: FavoriteButtonProps) {
-  const [isFavorite, setIsFavorite] = useState(initialIsFavorite);
+export default function FavoriteButton({ track, onToggle }: FavoriteButtonProps) {
+  const { favorites, isFavorite, addFavorite, removeFavorite } = useFavorites();
   const [loading, setLoading] = useState(false);
   const [isAnimating, setIsAnimating] = useState(false);
+
+  const currentIsFavorite = isFavorite(track.id);
 
   const handleToggleFavorite = async () => {
     if (loading) return;
@@ -29,46 +31,25 @@ export default function FavoriteButton({ track, isFavorite: initialIsFavorite = 
     setIsAnimating(true);
     
     try {
-      if (isFavorite) {
-        // Remove from favorites
-        const response = await fetch(`/api/favorites/${track.id}`, {
-          method: 'DELETE',
-        });
-        
-        if (response.ok) {
-          setIsFavorite(false);
+      if (currentIsFavorite) {
+        // Find the favorite ID to remove
+        const favorite = favorites.find(fav => fav.spotifyId === track.id);
+        if (favorite) {
+          await removeFavorite(favorite.id);
           onToggle?.(false);
-        } else {
-          console.error('Failed to remove from favorites');
         }
       } else {
         // Add to favorites
-        const response = await fetch('/api/favorites', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            spotifyId: track.id,
-            name: track.name,
-            artists: track.artists,
-            album: track.album,
-            albumArt: track.albumArt,
-            previewUrl: track.previewUrl,
-            externalUrl: track.externalUrl,
-          }),
+        await addFavorite({
+          spotifyId: track.id,
+          name: track.name,
+          artists: track.artists,
+          album: track.album,
+          albumArt: track.albumArt,
+          previewUrl: track.previewUrl,
+          externalUrl: track.externalUrl,
         });
-        
-        if (response.ok) {
-          setIsFavorite(true);
-          onToggle?.(true);
-        } else if (response.status === 409) {
-          // Song already in favorites
-          setIsFavorite(true);
-          onToggle?.(true);
-        } else {
-          console.error('Failed to add to favorites');
-        }
+        onToggle?.(true);
       }
     } catch (error) {
       console.error('Error toggling favorite:', error);
@@ -85,18 +66,18 @@ export default function FavoriteButton({ track, isFavorite: initialIsFavorite = 
       disabled={loading}
       className={`
         group relative flex h-10 w-10 items-center justify-center rounded-full transition-all duration-300 ease-out
-        ${isFavorite 
+        ${currentIsFavorite 
           ? 'bg-gradient-to-br from-pink-500 to-rose-500 shadow-lg shadow-pink-500/25' 
           : 'bg-white/80 backdrop-blur-sm border border-gray-200 hover:border-pink-300 hover:bg-pink-50'
         }
         ${loading ? 'scale-95 cursor-not-allowed' : 'hover:scale-110 active:scale-95 cursor-pointer'}
-        ${isAnimating && isFavorite ? 'animate-pulse' : ''}
+        ${isAnimating && currentIsFavorite ? 'animate-pulse' : ''}
         focus:outline-none focus:ring-2 focus:ring-pink-500 focus:ring-offset-2
       `}
-      title={isFavorite ? 'Remove from favorites' : 'Add to favorites'}
+      title={currentIsFavorite ? 'Remove from favorites' : 'Add to favorites'}
     >
       {/* Background animation */}
-      {isAnimating && !isFavorite && (
+      {isAnimating && !currentIsFavorite && (
         <div className="absolute inset-0 rounded-full bg-gradient-to-br from-pink-500 to-rose-500 animate-ping opacity-20" />
       )}
       
@@ -104,7 +85,7 @@ export default function FavoriteButton({ track, isFavorite: initialIsFavorite = 
       <Heart 
         className={`
           h-5 w-5 transition-all duration-300 ease-out
-          ${isFavorite 
+          ${currentIsFavorite 
             ? 'text-white fill-current scale-110' 
             : 'text-gray-400 group-hover:text-pink-500 group-hover:scale-110'
           }

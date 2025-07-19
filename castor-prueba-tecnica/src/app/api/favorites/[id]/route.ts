@@ -5,9 +5,10 @@ import { supabaseServerClient } from '@/utils/supabase/server';
 // DELETE - Remove a song from favorites
 export async function DELETE(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const resolvedParams = await params;
     const supabase = await supabaseServerClient();
     const { data } = await supabase.auth.getUser();
     
@@ -17,7 +18,7 @@ export async function DELETE(
 
     const favorite = await prisma.favoriteSong.deleteMany({
       where: {
-        id: params.id,
+        id: resolvedParams.id,
         userId: data.user.id, // Ensure user can only delete their own favorites
       },
     });
