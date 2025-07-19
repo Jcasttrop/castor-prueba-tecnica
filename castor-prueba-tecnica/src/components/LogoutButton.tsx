@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/utils/supabase/client'
+import { LogOut, X, Check } from 'lucide-react'
 
 export default function LogoutButton() {
   const [isLoading, setIsLoading] = useState(false)
@@ -23,20 +24,31 @@ export default function LogoutButton() {
 
   if (showConfirm) {
     return (
-      <div className="flex gap-2">
+      <div className="flex items-center gap-2">
         <button
           onClick={handleLogout}
           disabled={isLoading}
-          className="bg-red-500 hover:bg-red-600 disabled:bg-red-300 text-white font-medium py-2 px-3 rounded-lg transition-colors duration-200 text-sm"
+          className="group flex items-center gap-2 rounded-lg bg-gradient-to-r from-red-500 to-rose-600 px-3 py-2 text-sm font-medium text-white shadow-lg transition-all duration-200 hover:from-red-600 hover:to-rose-700 hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2"
         >
-          {isLoading ? 'Signing out...' : 'Confirm'}
+          {isLoading ? (
+            <>
+              <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+              <span>Signing out...</span>
+            </>
+          ) : (
+            <>
+              <Check className="h-4 w-4" />
+              <span>Confirm</span>
+            </>
+          )}
         </button>
         <button
           onClick={() => setShowConfirm(false)}
           disabled={isLoading}
-          className="bg-gray-500 hover:bg-gray-600 text-white font-medium py-2 px-3 rounded-lg transition-colors duration-200 text-sm"
+          className="flex items-center gap-2 rounded-lg bg-gray-100 px-3 py-2 text-sm font-medium text-gray-700 transition-all duration-200 hover:bg-gray-200 hover:text-gray-900 disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2"
         >
-          Cancel
+          <X className="h-4 w-4" />
+          <span>Cancel</span>
         </button>
       </div>
     )
@@ -45,9 +57,10 @@ export default function LogoutButton() {
   return (
     <button
       onClick={() => setShowConfirm(true)}
-      className="bg-red-500 hover:bg-red-600 text-white font-medium py-2 px-4 rounded-lg transition-colors duration-200"
+      className="group flex items-center gap-2 rounded-lg bg-gray-100 px-3 py-2 text-sm font-medium text-gray-700 transition-all duration-200 hover:bg-gray-200 hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2"
     >
-      Sign Out
+      <LogOut className="h-4 w-4 transition-transform duration-200 group-hover:-translate-x-0.5" />
+      <span>Sign Out</span>
     </button>
   )
 }
